@@ -1,1 +1,1 @@
-DB_PATH = "../db_gis.db"
+DB_PATH = "db/db_gis.db"

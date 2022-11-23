@@ -130,4 +130,5 @@ dmypy.json
 
 # Custom files and dirs
 .idea/
-*.log
+logs/
+*.db

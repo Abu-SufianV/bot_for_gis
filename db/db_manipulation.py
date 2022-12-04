@@ -19,14 +19,17 @@ class Database:
                     """
                     CREATE TABLE IF NOT EXISTS user(
                         id_user INTEGER PRIMARY KEY,
-                        name VARCHAR(255) NOT NULL,
-                        surname VARCHAR(255) NOT NULL,
+                        name VARCHAR(255),
+                        surname VARCHAR(255),
                         middle_name VARCHAR(255),
-                        birth_date INTEGER NOT NULL,
+                        birth_date TIMESTAMP,
+                        passport VARCHAR(10),
                         snils VARCHAR(9),
                         passport VARCHAR(10),
                         phone_number VARCHAR(20),
-                        email_address VARCHAR(200)
+                        email_address VARCHAR(200),
+                        sing_up_date TIMESTAMP NOT NULL,
+                        sing_up_status VARCHAR(15)
                     )
                     """
                 )
@@ -147,14 +150,20 @@ class Database:
         except Exception as error:
             logging.error(f"Select query failed: {error}")
 
-    def insert_into_user(self, data: list) -> None:
+    def update_user(self, id_user: int, column_name: str, data: str) -> None:
         try:
             with sql.connect(self.db_path) as db:
                 cursor = db.cursor()
 
-                logging.info(f"Insert into table 'USER' data {data} ")
+                logging.info(f"Insert into table 'USER' in {column_name} data: {data} ")
+                logging.debug(f"Query: INSERT INTO user('{column_name}') VALUES ('{data}'); ")
 
-                cursor.execute(f"""INSERT INTO user VALUES (?,?,?,?,?,?,?,?,?); """, data)
+                cursor.execute(f"""
+                                UPDATE user
+                                SET 
+                                {column_name} = '{data}'
+                                WHERE id_user = {id_user}
+                                ; """)
 
                 logging.info(f"Insert - finished successfully")
         except Exception as error:
@@ -205,3 +214,53 @@ class Database:
                 return True
         except Exception as error:
             logging.error(f"Query failed: {error}")
+
+    def new_user(self, id_user: int) -> None:
+        try:
+            with sql.connect(self.db_path) as db:
+                cursor = db.cursor()
+
+                logging.info(f"Creating new user: {id_user}")
+
+                cursor.execute(f"""
+                                INSERT INTO user(id_user, sing_up_date, sing_up_status) 
+                                VALUES ('{id_user}','{datetime.now()}','start'); """)
+
+                logging.info(f"Sing up status for #{id_user}")
+        except Exception as error:
+            logging.error(f"Get status #{id_user} failed: {error}")
+
+    def get_sing_up_status(self, id_user: int) -> str:
+        try:
+            with sql.connect(self.db_path) as db:
+                cursor = db.cursor()
+
+                logging.info(f"Get status user #{id_user} for sing up")
+
+                result = cursor.execute(f"""
+                                SELECT sing_up_status 
+                                FROM user
+                                WHERE id_user = {id_user}
+                                """).fetchone()
+
+                logging.info(f"Sing up status for #{id_user} - {result[0]}")
+                return result[0]
+        except Exception as error:
+            logging.error(f"Get status #{id_user} failed: {error}")
+
+    def set_sing_up_status(self, id_user: int, new_status: str) -> None:
+        try:
+            with sql.connect(self.db_path) as db:
+                cursor = db.cursor()
+
+                logging.info(f"Set status user #{id_user} to '{new_status.upper()}'")
+
+                cursor.execute(f"""
+                                UPDATE user
+                                SET sing_up_status = '{new_status}'
+                                WHERE id_user = {id_user}
+                                """)
+
+                logging.info(f"Set status user #{id_user} - finished successfully")
+        except Exception as error:
+            logging.error(f"Set status failed: {error}")

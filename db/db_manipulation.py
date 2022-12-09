@@ -4,11 +4,20 @@ from configs.db_config import DB_PATH
 
 
 class Database:
+    """
+    Класс позволяет производить взаимодействие Telegram-Bot c БД
 
+    Возможности класса:
+        - создание таблиц;
+        - добавление, изменение, удаление строк из таблиц;
+    """
     def __init__(self, db_path=DB_PATH):
         self.db_path = db_path
 
     def create_table_user(self) -> None:
+        """
+        Создание таблицы USER
+        """
         try:
             with sql.connect(self.db_path) as db:
                 cursor = db.cursor()
@@ -25,7 +34,6 @@ class Database:
                         birth_date TIMESTAMP,
                         passport VARCHAR(10),
                         snils VARCHAR(9),
-                        passport VARCHAR(10),
                         phone_number VARCHAR(20),
                         email_address VARCHAR(200),
                         sing_up_date TIMESTAMP NOT NULL,
@@ -39,6 +47,9 @@ class Database:
             logging.error(f"Query to DB finished with errors: {error}")
 
     def create_table_apls(self) -> None:
+        """
+        Создание таблицы APPLICATIONS
+        """
         try:
             with sql.connect(self.db_path) as db:
                 cursor = db.cursor()
@@ -66,6 +77,9 @@ class Database:
             logging.error(f"Query to DB finished with errors: {error}")
 
     def create_table_dept(self) -> None:
+        """
+        Создание таблицы DEPARTMENTS
+        """
         try:
             with sql.connect(self.db_path) as db:
                 cursor = db.cursor()
@@ -89,6 +103,11 @@ class Database:
             logging.error(f"Query to DB finished with errors: {error}")
 
     def list_all_tables(self) -> list[str]:
+        """
+        Вывод всех кастомных таблиц из БД
+
+        :return: Список названий таблиц БД
+        """
         try:
             with sql.connect(self.db_path) as db:
                 cursor = db.cursor()
@@ -109,11 +128,19 @@ class Database:
             logging.error(f"Query failed: {error}")
 
     def create_all_tables(self) -> None:
+        """
+        Создание всех таблиц
+
+        :return:
+        """
         self.create_table_user()
         self.create_table_apls()
         self.create_table_dept()
 
-    def delete_all_table(self):
+    def delete_all_table(self) -> None:
+        """
+        Удаление всех таблиц из БД
+        """
         try:
             with sql.connect(self.db_path) as db:
                 cursor = db.cursor()
@@ -131,7 +158,13 @@ class Database:
         except Exception as error:
             logging.error(f"Delete tables failed: {error}")
 
-    def select_to_db(self, query: str) -> list:
+    def select_to_db(self, query: str) -> list[tuple]:
+        """
+        Запрос в БД с дальнейшим возвратом результата выборки
+
+        :param query: текст запроса
+        :return: результат запроса выборки
+        """
         try:
             with sql.connect(self.db_path) as db:
                 cursor = db.cursor()
@@ -151,6 +184,13 @@ class Database:
             logging.error(f"Select query failed: {error}")
 
     def update_user(self, id_user: int, column_name: str, data: str) -> None:
+        """
+        Изменение строки в таблице USER по полю id_user
+
+        :param id_user: ID пользователя
+        :param column_name: изменяемое поле
+        :param data: данные вносимые в поле
+        """
         try:
             with sql.connect(self.db_path) as db:
                 cursor = db.cursor()
@@ -170,6 +210,11 @@ class Database:
             logging.error(f"Insert query failed: {error}")
 
     def insert_into_app(self, data: list) -> None:
+        """
+        Добавляет запись в таблицу APPLICATIONS
+
+        :param data: Данные добавляемые в таблицу
+        """
         try:
             with sql.connect(self.db_path) as db:
                 cursor = db.cursor()
@@ -183,6 +228,11 @@ class Database:
             logging.error(f"Insert query failed: {error}")
 
     def query_to_db(self, query: str) -> None:
+        """
+        Запрос в БД не возвращающий данных
+
+        :param query: текст запроса
+        """
         try:
             with sql.connect(self.db_path) as db:
                 cursor = db.cursor()
@@ -196,6 +246,12 @@ class Database:
             logging.error(f"Query failed: {error}")
 
     def user_in_system(self, id_user: int) -> bool:
+        """
+        Проверка на наличие пользователя в БД
+
+        :param id_user: ID пользователя
+        :return: возвращает True, если пользователь найден
+        """
         try:
             with sql.connect(self.db_path) as db:
                 cursor = db.cursor()
@@ -216,6 +272,11 @@ class Database:
             logging.error(f"Query failed: {error}")
 
     def new_user(self, id_user: int) -> None:
+        """
+        Добавление нового пользователя в таблицу USER
+
+        :param id_user: ID пользователя
+        """
         try:
             with sql.connect(self.db_path) as db:
                 cursor = db.cursor()
@@ -231,6 +292,12 @@ class Database:
             logging.error(f"Get status #{id_user} failed: {error}")
 
     def get_sing_up_status(self, id_user: int) -> str:
+        """
+        Определяет статус регистрации пользователя
+
+        :param id_user: birth_date пользователя
+        :return: статус пользователя
+        """
         try:
             with sql.connect(self.db_path) as db:
                 cursor = db.cursor()
@@ -249,6 +316,12 @@ class Database:
             logging.error(f"Get status #{id_user} failed: {error}")
 
     def set_sing_up_status(self, id_user: int, new_status: str) -> None:
+        """
+        Изменение текущего статуса пользователя
+
+        :param id_user: ID пользователя
+        :param new_status: новый статус
+        """
         try:
             with sql.connect(self.db_path) as db:
                 cursor = db.cursor()

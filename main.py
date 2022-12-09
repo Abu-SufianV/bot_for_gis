@@ -1,9 +1,12 @@
 import telebot
 import support_func as sup
+from datetime import datetime
 from db.db_manipulation import Database
 from configs.patterns import *
 from configs.log_config import *
 from configs.bot_token import TOKEN
+
+logging.info(f"- - - - Start program - - - -")
 
 # Запускаем бота
 logging.info(f"Connecting to Bot")

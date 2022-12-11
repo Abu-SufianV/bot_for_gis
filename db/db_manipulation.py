@@ -11,6 +11,7 @@ class Database:
         - создание таблиц;
         - добавление, изменение, удаление строк из таблиц;
     """
+
     def __init__(self, db_path=DB_PATH):
         self.db_path = db_path
 
@@ -61,18 +62,41 @@ class Database:
                     CREATE TABLE IF NOT EXISTS applications(
                         id_application INTEGER PRIMARY KEY AUTOINCREMENT,
                         id_user INTEGER NOT NULL,
-                        type_application VARCHAR(255) NOT NULL,
                         id_department INTEGER NOT NULL,
-                        target VARCHAR(255) NOT NULL,                
+                        id_target INTEGER,                
                         date_stamp TIMESTAMP NOT NULL,
                         date_app TIMESTAMP,
                         result BLOB,
-                        cancel_reason VARCHAR(255) NOT NULL
+                        cancel_reason VARCHAR(255)
                     )
                     """
                 )
 
                 logging.info("Table 'APPLICATIONS' create - finished successfully")
+        except Exception as error:
+            logging.error(f"Query to DB finished with errors: {error}")
+
+    def create_table_targ(self) -> None:
+        """
+        Создание таблицы TARGET
+        """
+        try:
+            with sql.connect(self.db_path) as db:
+                cursor = db.cursor()
+
+                logging.info("Table 'TARGET' create - started")
+
+                cursor.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS target(
+                        id_target INTEGER PRIMARY KEY AUTOINCREMENT,
+                        id_department INTEGER NOT NULL,
+                        name VARCHAR(255) NOT NULL
+                    )
+                    """
+                )
+
+                logging.info("Table 'TARGET' create - finished successfully")
         except Exception as error:
             logging.error(f"Query to DB finished with errors: {error}")
 
@@ -136,6 +160,7 @@ class Database:
         self.create_table_user()
         self.create_table_apls()
         self.create_table_dept()
+        self.create_table_targ()
 
     def delete_all_table(self) -> None:
         """
@@ -209,11 +234,11 @@ class Database:
         except Exception as error:
             logging.error(f"Insert query failed: {error}")
 
-    def insert_into_app(self, data: list) -> None:
+    def new_application(self, data: list) -> None:
         """
         Добавляет запись в таблицу APPLICATIONS
 
-        :param data: Данные добавляемые в таблицу
+        :param data: id_user и id_department
         """
         try:
             with sql.connect(self.db_path) as db:
@@ -221,7 +246,8 @@ class Database:
 
                 logging.info(f"Insert into table 'APPLICATIONS' data {data} ")
 
-                cursor.execute(f"""INSERT INTO applications VALUES (NULL,?,?,?,?,?,?,?,?); """, data)
+                cursor.execute(f"""INSERT INTO applications (id_application, id_user, id_department, date_stamp) 
+                                    VALUES (NULL,?,?,'{datetime.now()}'); """, data)
 
                 logging.info(f"Insert - finished successfully")
         except Exception as error:
@@ -270,6 +296,24 @@ class Database:
                 return True
         except Exception as error:
             logging.error(f"Query failed: {error}")
+
+    def user_all_info(self, id_user: int) -> tuple:
+        try:
+            with sql.connect(self.db_path) as db:
+                cursor = db.cursor()
+
+                logging.info(f"Get all info for user #{id_user}")
+
+                result = cursor.execute(f"""
+                                SELECT * FROM user 
+                                WHERE id_user = {id_user}
+                                """).fetchall()[0]
+
+                logging.info(f"Info ready for #{id_user}: {result}")
+
+                return result
+        except Exception as error:
+            logging.error(f"Get all info #{id_user} failed: {error}")
 
     def new_user(self, id_user: int) -> None:
         """

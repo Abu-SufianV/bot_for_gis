@@ -17,17 +17,17 @@ class Database:
 
     def create_table_user(self) -> None:
         """
-        Создание таблицы USER
+        Создание таблицы USERS
         """
         try:
             with sql.connect(self.db_path) as db:
                 cursor = db.cursor()
 
-                logging.info("Table 'USER' create - started")
+                logging.info("Table 'USERS' create - started")
 
                 cursor.execute(
                     """
-                    CREATE TABLE IF NOT EXISTS user(
+                    CREATE TABLE IF NOT EXISTS users(
                         id_user INTEGER PRIMARY KEY,
                         name VARCHAR(255),
                         surname VARCHAR(255),
@@ -43,7 +43,7 @@ class Database:
                     """
                 )
 
-                logging.info("Table 'USER' create - finished successfully!")
+                logging.info("Table 'USERS' create - finished successfully!")
         except Exception as error:
             logging.error(f"Query to DB finished with errors: {error}")
 
@@ -64,10 +64,7 @@ class Database:
                         id_user INTEGER NOT NULL,
                         id_department INTEGER NOT NULL,
                         id_target INTEGER,                
-                        date_stamp TIMESTAMP NOT NULL,
-                        date_app TIMESTAMP,
-                        result BLOB,
-                        cancel_reason VARCHAR(255)
+                        date_stamp TIMESTAMP NOT NULL
                     )
                     """
                 )
@@ -78,17 +75,17 @@ class Database:
 
     def create_table_targ(self) -> None:
         """
-        Создание таблицы TARGET
+        Создание таблицы TARGETS
         """
         try:
             with sql.connect(self.db_path) as db:
                 cursor = db.cursor()
 
-                logging.info("Table 'TARGET' create - started")
+                logging.info("Table 'TARGETS' create - started")
 
                 cursor.execute(
                     """
-                    CREATE TABLE IF NOT EXISTS target(
+                    CREATE TABLE IF NOT EXISTS targets(
                         id_target INTEGER PRIMARY KEY AUTOINCREMENT,
                         id_department INTEGER NOT NULL,
                         name VARCHAR(255) NOT NULL
@@ -96,7 +93,7 @@ class Database:
                     """
                 )
 
-                logging.info("Table 'TARGET' create - finished successfully")
+                logging.info("Table 'TARGETS' create - finished successfully")
         except Exception as error:
             logging.error(f"Query to DB finished with errors: {error}")
 
@@ -210,7 +207,7 @@ class Database:
 
     def update_user(self, id_user: int, column_name: str, data: str) -> None:
         """
-        Изменение строки в таблице USER по полю id_user
+        Изменение строки в таблице USERS по полю id_user
 
         :param id_user: ID пользователя
         :param column_name: изменяемое поле
@@ -220,11 +217,11 @@ class Database:
             with sql.connect(self.db_path) as db:
                 cursor = db.cursor()
 
-                logging.info(f"Insert into table 'USER' in {column_name} data: {data} ")
-                logging.debug(f"Query: INSERT INTO user('{column_name}') VALUES ('{data}'); ")
+                logging.info(f"Insert into table 'USERS' in {column_name} data: {data} ")
+                logging.debug(f"Query: INSERT INTO users('{column_name}') VALUES ('{data}'); ")
 
                 cursor.execute(f"""
-                                UPDATE user
+                                UPDATE users
                                 SET 
                                 {column_name} = '{data}'
                                 WHERE id_user = {id_user}
@@ -286,7 +283,7 @@ class Database:
 
                 result = cursor.execute(f"""
                                 SELECT name, surname 
-                                FROM user
+                                FROM users
                                 WHERE id_user = {id_user}
                                 """).fetchall()
                 if result.__len__() == 0:
@@ -305,7 +302,7 @@ class Database:
                 logging.info(f"Get all info for user #{id_user}")
 
                 result = cursor.execute(f"""
-                                SELECT * FROM user 
+                                SELECT * FROM users 
                                 WHERE id_user = {id_user}
                                 """).fetchall()[0]
 
@@ -317,7 +314,7 @@ class Database:
 
     def new_user(self, id_user: int) -> None:
         """
-        Добавление нового пользователя в таблицу USER
+        Добавление нового пользователя в таблицу USERS
 
         :param id_user: ID пользователя
         """
@@ -328,7 +325,7 @@ class Database:
                 logging.info(f"Creating new user: {id_user}")
 
                 cursor.execute(f"""
-                                INSERT INTO user(id_user, sing_up_date, sing_up_status) 
+                                INSERT INTO users(id_user, sing_up_date, sing_up_status) 
                                 VALUES ('{id_user}','{datetime.now()}','start'); """)
 
                 logging.info(f"Sing up status for #{id_user}")
@@ -350,7 +347,7 @@ class Database:
 
                 result = cursor.execute(f"""
                                 SELECT sing_up_status 
-                                FROM user
+                                FROM users
                                 WHERE id_user = {id_user}
                                 """).fetchone()
 
@@ -373,7 +370,7 @@ class Database:
                 logging.info(f"Set status user #{id_user} to '{new_status.upper()}'")
 
                 cursor.execute(f"""
-                                UPDATE user
+                                UPDATE users
                                 SET sing_up_status = '{new_status}'
                                 WHERE id_user = {id_user}
                                 """)
@@ -381,3 +378,37 @@ class Database:
                 logging.info(f"Set status user #{id_user} - finished successfully")
         except Exception as error:
             logging.error(f"Set status failed: {error}")
+
+    def get_all_apls_data(self, id_user: int) -> list:
+        try:
+            with sql.connect(self.db_path) as db:
+                cursor = db.cursor()
+
+                logging.info(f"Get all data about application to #{id_user}")
+
+                res = cursor.execute(f"""
+                    SELECT DISTINCT 
+                    us.surname || ' '  || us.name || ' ' || us.middle_name as full_name, 
+                    us.birth_date,
+                    us.passport, 
+                    us.snils, 
+                    us.phone_number, 
+                    us.email_address,
+                    dep.name,
+                    tar.name,
+                    dep.location,
+                    dep.work_from,
+                    dep.work_to 
+                    FROM users as us 
+                    JOIN applications as app ON app.id_user = us.id_user 
+                    JOIN departments as dep ON dep.id_department = app.id_department 
+                    JOIN targets as tar ON tar.id_target = app.id_target
+                    WHERE us.id_user = {id_user} 
+                    AND app.id_application IN (SELECT max(id_application) 
+                    FROM applications WHERE id_user = {id_user})
+                """).fetchall()[0]
+
+                logging.info(f"Get all data about application to #{id_user} - finished successfully")
+                return res
+        except Exception as error:
+            logging.error(f"Get all data: {error}")

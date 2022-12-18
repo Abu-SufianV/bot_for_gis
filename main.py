@@ -210,7 +210,15 @@ def main_message(message) -> None:
                            f"AND id_application IN (SELECT max(id_application)"
                            f"FROM applications WHERE id_user = {id_user})")
 
-            send_text = sup.text_from_json("application_confirm").format(*db.get_all_apls_data(id_user=id_user))
+            user_data = list(db.get_all_apls_data(id_user=id_user))
+            if user_data[2] is None:
+                full_name = " ".join(user_data[:2])
+            else:
+                full_name = " ".join(user_data[:3])
+            user_data = [x for i, x in enumerate(user_data) if i not in [0, 1, 2]]
+            user_data.insert(0, full_name)
+            user_data[1] = sup.date_formatter(user_data[1])
+            send_text = sup.text_from_json("application_confirm").format(*user_data)
             bot.send_message(chat_id=message.chat.id,
                              text=send_text,
                              reply_markup=get_replay_markup(message.text))

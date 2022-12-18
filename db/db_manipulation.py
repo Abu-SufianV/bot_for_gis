@@ -388,7 +388,9 @@ class Database:
 
                 res = cursor.execute(f"""
                     SELECT DISTINCT 
-                    us.surname || ' '  || us.name || ' ' || us.middle_name as full_name, 
+                    us.surname,
+                    us.name,
+                    us.middle_name, 
                     us.birth_date,
                     us.passport, 
                     us.snils, 

@@ -9,12 +9,20 @@ from configs.bot_token import TOKEN
 logging.info(f"- - - - Start program - - - -")
 
 # Запускаем бота
-logging.info(f"Connecting to Bot")
-bot = telebot.TeleBot(TOKEN, parse_mode="Markdown")
+try:
+    logging.info(f"Connecting to Bot")
+    bot = telebot.TeleBot(TOKEN, parse_mode="Markdown")
+except Exception as error:
+    logging.error(f"Error connecting to Bot: {error}")
+    raise error
 
 # Подключаемся к БД
-logging.info(f"Connecting to Database")
-db = Database()
+try:
+    logging.info(f"Connecting to Database")
+    db = Database()
+except Exception as error:
+    logging.error(f"Error connecting to Database: {error}")
+    raise error
 
 
 def user_in_system(id_user: int) -> None:
@@ -45,8 +53,12 @@ def get_user_all_info(id_user: int) -> str:
     :return: строка со всей информацией о пользователе
     """
     user_data = db.user_all_info(id_user)
+    if user_data[3] == None:
+        full_name = f"{user_data[2]} {user_data[1]}"
+    else:
+        full_name =f"{user_data[2]} {user_data[1]} {user_data[3]}"
     text_message = sup.text_from_json("old_user").format(
-        f"{user_data[2]} {user_data[1]} {user_data[3]}",
+        full_name,
         sup.date_formatter(user_data[4]),
         user_data[5],
         user_data[6],
@@ -139,6 +151,7 @@ def start_message(message) -> None:
     else:
         user_sing_up(id_user=id_user)
 
+
 @bot.message_handler(commands=["help"])
 def start_message(message) -> None:
     """
@@ -147,8 +160,8 @@ def start_message(message) -> None:
     :param message: Данные от пользователя
     """
 
-    bot.send_message(chat_id=id_user,
-                     text=sup.text_from_json("start").format(message.from_user.first_name),
+    bot.send_message(chat_id=message.from_user.id,
+                     text=sup.text_from_json("help").format(message.from_user.first_name),
                      )
 
 
@@ -157,6 +170,7 @@ def main_message(message) -> None:
     id_user = message.from_user.id
     logging.info(f"Message from #{id_user}: {message.text}")
     if message.text == "SOS!":
+        # Пользователь ввёл сообщение "SOS!"
         bot.send_message(chat_id=196038837,
                          text=sup.text_from_json("sos").format(message.from_user.username))
         bot.send_message(chat_id=message.chat.id,
@@ -167,6 +181,7 @@ def main_message(message) -> None:
     status = db.get_sing_up_status(id_user)
 
     if status == "done":
+        # Пользователь зарегистрирован в системе
         all_dept = db.select_to_db("SELECT name FROM departments")
         all_targ = db.select_to_db("SELECT name FROM targets")
         if message.text == "🪪 Инфо. обо мне":
@@ -217,33 +232,45 @@ def main_message(message) -> None:
                              text="Чем можем Вам помочь?",
                              reply_markup=get_replay_markup(status))
     elif status == "start":
-        full_name = str(message.text).strip()
+        # Начал процесс регистрации
 
-        for letter in full_name:
-            if letter in special_symbols:
-                bot.send_message(chat_id=id_user,
-                                 text=sup.text_from_json("error", "name"))
+        try:
+            full_name = str(message.text).strip()
 
-        full_name = full_name.split()
-        if full_name.__len__() != 3:
-            bot.send_message(chat_id=id_user,
-                             text=sup.text_from_json("error", "name"))
+            for letter in full_name:
+                if letter in special_symbols:
+                    raise bot.send_message(chat_id=id_user,
+                                           text=sup.text_from_json("error", "name"))
 
-        db.update_user(id_user=id_user,
-                       column_name="name",
-                       data=full_name[1].capitalize())
+            full_name = full_name.split()
+            if full_name.__len__() not in [2, 3]:
+                raise sup.text_from_json("error", "name")
 
-        db.update_user(id_user=id_user,
-                       column_name="surname",
-                       data=full_name[0].capitalize())
+            for name in full_name:
+                if name.__len__() <= 2:
+                    raise sup.text_from_json("error", "name")
 
-        db.update_user(id_user=id_user,
-                       column_name="middle_name",
-                       data=full_name[2].capitalize())
-        db.set_sing_up_status(id_user=id_user, new_status="full_name")
+            db.update_user(id_user=id_user,
+                           column_name="name",
+                           data=full_name[1].capitalize())
 
-        bot.send_message(chat_id=id_user, text=sup.text_from_json("birth_date"))
+            db.update_user(id_user=id_user,
+                           column_name="surname",
+                           data=full_name[0].capitalize())
+
+            if full_name.__len__() == 3:
+                db.update_user(id_user=id_user,
+                               column_name="middle_name",
+                               data=full_name[2].capitalize())
+
+            db.set_sing_up_status(id_user=id_user, new_status="full_name")
+
+            bot.send_message(chat_id=id_user, text=sup.text_from_json("birth_date"))
+        except Exception as error:
+            bot.send_message(chat_id=id_user, text=sup.text_from_json("error", "name"))
+
     elif status == "full_name":
+        # Пользователь ввёл ФИО, теперь дата рождения
         try:
             birth_date = datetime.strptime(message.text, "%d.%m.%Y")
             db.update_user(id_user=id_user,
@@ -260,6 +287,7 @@ def main_message(message) -> None:
             bot.send_message(chat_id=id_user,
                              text=sup.text_from_json("error", "birth_date"))
     elif status == "passport":
+        # Пользователь ввёл дату рождения, теперь паспорт
         passport = str(message.text)
         if passport.isdigit() and passport.__len__() == 10:
             passport = f"{passport[:4]} {passport[4:]}"
@@ -276,6 +304,7 @@ def main_message(message) -> None:
             bot.send_message(chat_id=id_user,
                              text=sup.text_from_json("error", "passport"))
     elif status == "snils":
+        # Пользователь ввёл паспорт, теперь СНИЛС
         snils = str(message.text).replace("-", "").strip()
         if snils.isdigit() and snils.__len__() == 11:
             snils = f"{snils[:3]}-{snils[3:6]}-{snils[6:9]}-{snils[9:]}"
@@ -292,6 +321,7 @@ def main_message(message) -> None:
             bot.send_message(chat_id=id_user,
                              text=sup.text_from_json("error", "snils"))
     elif status == "phone_number":
+        # Пользователь ввёл СНИЛС, теперь номер телефона
         phone = sup.phone_formatter(phone=message.text)
 
         if phone.isdigit() and phone.__len__() == 11:
@@ -311,12 +341,13 @@ def main_message(message) -> None:
             bot.send_message(chat_id=id_user,
                              text=sup.text_from_json("error", "phone_number"))
     elif status == "email_address":
+        # Пользователь ввёл номер телефона, теперь e-mail
         email = str(message.text).strip()
 
         if "@" in email and "." in email:
             email_dog = email.split("@")[0]
             email_dot = email.split("@")[1].split(".")
-            if email_dog.__len__() > 1 and email_dot[0].__len__() > 1 and email_dot[1].__len__() > 1:
+            if email_dog.__len__() > 0 and email_dot[0].__len__() > 0 and email_dot[1].__len__() > 0:
                 db.update_user(id_user=id_user,
                                column_name="email_address",
                                data=email)
@@ -330,6 +361,8 @@ def main_message(message) -> None:
                 bot.send_message(chat_id=message.chat.id,
                                  text="Чем можем Вам помочь?",
                                  reply_markup=get_replay_markup("done"))
+            else:
+                bot.send_message(id_user, text=sup.text_from_json("error", "email_address"))
         else:
             bot.send_message(id_user, text=sup.text_from_json("error", "email_address"))
 
@@ -352,5 +385,3 @@ def callback_query(call):
 
 
 bot.polling(none_stop=True, interval=0)
-# db.query_to_db("DELETE FROM users")
-# db.create_all_tables()

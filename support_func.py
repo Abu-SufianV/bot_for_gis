@@ -35,7 +35,7 @@ def phone_formatter(phone: str, output=False) -> str:
     """
     pattern = ["-", "+", " ", "(", ")"]
     for pat in pattern:
-        phone.replace(pat, "")
+        phone = phone.replace(pat, "")
     if output:
         phone = f"+7 ({phone[1:4]}) {phone[4:7]}-{phone[7:9]}-{phone[9:]}"
     return phone

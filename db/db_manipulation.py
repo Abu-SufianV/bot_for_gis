@@ -111,7 +111,7 @@ class Database:
                     """
                     CREATE TABLE IF NOT EXISTS departments (
                         id_department INTEGER PRIMARY KEY AUTOINCREMENT,
-                        name INTEGER NOT NULL,
+                        name VARCHAR(255) NOT NULL,
                         location VARCHAR(255) NOT NULL,
                         work_from VARCHAR(5) NOT NULL,
                         work_to VARCHAR(5) NOT NULL

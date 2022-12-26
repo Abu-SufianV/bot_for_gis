@@ -2,7 +2,6 @@ import telebot
 import support_func as sup
 from datetime import datetime
 from db.db_manipulation import Database
-from configs.patterns import *
 from configs.log_config import *
 from configs.bot_token import TOKEN
 
@@ -153,7 +152,7 @@ def start_message(message) -> None:
 
 
 @bot.message_handler(commands=["help"])
-def start_message(message) -> None:
+def help_message(message) -> None:
     """
     Обработка команды /help
 
@@ -241,7 +240,7 @@ def main_message(message) -> None:
                              reply_markup=get_replay_markup(status))
     elif status == "start":
         # Начал процесс регистрации
-
+        special_symbols = '!@#$%^&*()=_+'
         try:
             full_name = str(message.text).strip()
 
